@@ -1,7 +1,6 @@
 m = require 'mithril'
 s = require 'mss-js'
 u = require './utils'
-style = require './style'
 
 class Modal
     constructor: ({
@@ -51,7 +50,7 @@ Modal.mss =
         position: 'fixed'
         top: 0
         left: 0
-        background: style.modalBG
+        background: '#00000066'
         zIndex: 9999
 
         $before:

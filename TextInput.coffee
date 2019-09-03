@@ -1,113 +1,136 @@
 m = require 'mithril'
 s = require 'mss-js'
-style = require './style'
 u = require './utils'
+{ INPUT_WIDTH_MAP, BUTTON_WIDTH_MAP, BUTTON_HEIGHT_MAP, FONTSIZE_MAP } = require './CONSTANT'
 
 class TextInput
     constructor: ({
-        @content = ''           # String
-    ,   @disabled = false       # Boolean
+        @value = ''             # String
+    ,   @disabled = false       # Boolean (default = false)
+    ,   @error = false          # Boolean (default = false)
+    ,   @password = false       # Boolean (default = false)
     ,   @placeholder = ''       # String
-    ,   @onPaste = u.noOp       # (String) -> a | Error
+    ,   @prefix = ''            # String
+    ,   @suffix = ''            # String
+    ,   @unit = ''              # String
+    ,   @size = 'M'             # size: 'XS' | 'S' | 'M' | 'L' | 'XL'         (default = 'M')
+    ,   @width = INPUT_WIDTH_MAP[@size] # '100%', '240px' ... (default = INPUT_WIDTH_MAP[@size])
+    ,   @onPaste = u.noOp       # (value :: String, e :: DOMEvent) -> a
                                 # triggered on Paste
-    ,   @onChange = u.noOp      # (String) -> a | Error
+    ,   @onChange = u.noOp      # (value :: String, e :: DOMEvent) -> a
                                 # triggered on Blur or user stroke Enter
-    ,   @onKeyup  = u.noOp      # (String) -> a | Error
+    ,   @onKeyup  = u.noOp      # (value :: String, e :: DOMEvent) -> a
                                 # triggered when user stroke non-Enters
-    ,   @onEnter  = u.noOp      # (String) -> a | Error
+    ,   @onEnter  = u.noOp      # (value :: String, e :: DOMEvent) -> a
                                 # triggered when user stroke Enter
-    ,   @onClick = u.noOp       # () -> a
+    ,   @onClick = u.noOp       # (e :: DOMEvent) -> a
                                 # triggered when user click the input
+
 
     }) ->
 
-        @validationMsg = ''     # String
-
-    submit: ->
-        if @validationMsg == '' then @content
-        else new Error @validationMsg
-
-    validateInternal: (c) ->
-
     onChangeInternal: (e) =>
-        c = (u.getTarget e).value
-        @content = c
-        err = @onChange c
-        @validationMsg = ''
-        if err instanceof Error
-            @validationMsg = err.message
+        c = e.target.value
+        @value = c
+        @onChange c, e
 
     onPasteInternal: (e) =>
-        setTimeout(
-            (=>
-                c = (u.getTarget e).value
-                @content = c
-                err = @onPaste c
-                @validationMsg = ''
-                if err instanceof Error
-                    @validationMsg = err.message)
-        , 4)
+        console.log e
+        c = (event.clipboardData || window.clipboardData).getData('text')
+        @value = c
+        @onPaste c, e
 
-
-    onkeyupInternal: (e) =>
-        c = (u.getTarget e).value
-        @content = c
+    onKeyupInternal: (e) =>
+        c = e.target.value
+        @value = c
         if (e.keyCode == 13 or e.key == "Enter")
-            if @validationMsg == ''
-                err = @onEnter (@content)
-                if err instanceof Error
-                    @validationMsg = err.message
-        else
-            err = @onKeyup c[c.length-1]
-            @validationMsg = ''
-            if err instanceof Error
-                @validationMsg = err.message
+            @onEnter c, e
+        else @onKeyup c, e
 
-    view: ->
-        m '.TextInput',
-            m 'input.Input',
-                disabled: @disabled
-                onchange: @onChangeInternal
-                onkeyup: @onkeyupInternal
-                value: @content
-                placeholder: @placeholder
-                onclick: @onClick
-                onpaste: @onPasteInternal
-            if @validationMsg != ''
-                m '.ValidationMsg', @validationMsg
+    view: -> [
+        m 'table.TextInput',
+            className: if @error then 'Error' else ''
+            style:
+                width: @width
+                height: BUTTON_HEIGHT_MAP[@size]
+                lineHeight: BUTTON_HEIGHT_MAP[@size]
+                fontSize: FONTSIZE_MAP[@size]
+        ,
+            m 'tr',
+                if @prefix
+                    m 'span.Prefix', @prefix
+                m 'input.Input',
+                    type: if @password then 'password' else ''
+                    style:
+                        height: BUTTON_HEIGHT_MAP[@size]
+                        lineHeight: BUTTON_HEIGHT_MAP[@size]
+                        fontSize: FONTSIZE_MAP[@size]
+                    disabled: @disabled
+                    onchange: @onChangeInternal
+                    onkeyup: @onKeyupInternal
+                    value: @value
+                    placeholder: @placeholder
+                    onclick: @onClick
+                    onpaste: @onPasteInternal
+                if @suffix
+                    m 'span.Suffix', @suffix
+
+                m 'span.Unit', @unit
+    ]
 
 TextInput.mss =
-    TextInput: s.LineSize('1.93em', '1em')
-        # why 1.93em you may ask?
-        # because it will align Dropdown, TextInput and anyother things nicely
-        width: '200px'
+    TextInput:
+        borderCollapse: 'separate'
+        borderSpacing: 0
+        borderRadius: '4px'
+        border: '1px solid #DADFE3'
         position: 'relative'
-        Input:
-            display: 'block'
-            border: '1px solid ' + style.border[4]
-            width: '100%'
-            height: '100%'
-            fontSize: '1em'
-            padding: '0 0.4em'
-            WebkitAppearance: 'none'
-            borderRadius: 0
-        ValidationMsg:
-            background: style.warn[5]
-            color: style.text[8]
+        Unit:
             position: 'absolute'
             top: 0
             left: '100%'
-            textAlign: 'center'
-            width: '200px'
-            zIndex: 99
-            $before:
-                content: '""'
-                position: 'absolute'
-                top: 0
-                left: '-2em'
-                width: 0
-                height: 0
-                border: '1em solid transparent'
-                borderRight: '1em solid ' + style.warn[5]
+            marginLeft: '16px'
+        Prefix_Suffix:
+            display: 'table-cell'
+            background: '#F8F9FA'
+            verticalAlign: 'middle'
+            padding: '0 8px'
+        Prefix:
+            borderRight: '1px solid #DADFE3'
+            borderRadius: '4px 0 0 4px'
+        Suffix:
+            borderLeft: '1px solid #DADFE3'
+            borderRadius: '0 4px 4px 0'
+        Input:
+            width: '100%'
+            verticalAlign: 'middle'
+            margin: 0
+            display: 'table-cell'
+            color: '#333'
+            outline: 0
+            border: 'none'
+            borderRadius: '4px'
+            padding: '0 8px'
+            verticalAlign: 'middle'
+            $disabled:
+                background: '#FCFCFC'
+                cursor: 'not-allowed'
+                color: '#D6D6D6'
+    '.TextInput:hover':
+        borderColor: '#2F88FF'
+    '.TextInput.Error':
+        borderColor: '#F45858'
+        Prefix:
+            borderColor: '#F45858'
+        Suffix:
+            borderColor: '#F45858'
+    '.TextInput:focus-within':
+        borderColor: '#2F88FF'
+        boxShadow: '0 0 0 2px #2F88FF26'
+        Prefix:
+            borderColor: '#2F88FF'
+        Suffix:
+            borderColor: '#2F88FF'
+
 
 module.exports = TextInput

@@ -3,284 +3,266 @@ s = require 'mss-js'
 u = require './utils'
 AutoHide = require './AutoHide'
 
-style = require './style'
-i18n = require './i18n'
-dateIcon = require 'mmsvg/google/msvg/action/date-range'
+{ DAY_NAME, LEFT_DOUBLE_ARROW, LEFT_ARROW, RIGHT_DOUBLE_ARROW, RIGHT_ARROW, CALENDAR} = require './CONSTANT'
 
-hourArray = (u.formatXX x for x in [0..23])
-minuteArray = (u.formatXX x for x in [0..59])
-secondArray = (u.formatXX x for x in [0..59])
-
+# sharing date via .date
 class DatePicker
     constructor: ({
-        date                          # Date
-    ,   @selectTime                   # Boolean
-    ,   @ifDateAvailable = (-> true)  # (Date) -> Boolean
-    ,   @onSelect = u.noOp            # (Date) -> a
+        date                         # Date
+    ,   @ifDateAvailable = (-> true) # (Date) -> Boolean
+    ,   @onSelect = u.noOp           # (date :: Date, e :: DOMEvent) -> a
+    ,   highlightStartDate           # Date
+    ,   highlightEndDate             # Date
     }) ->
-        @displayDate = new Date date
-        @date = new Date date
-        @init()
+        if date
+            @date = u.clearDateHMS(new Date date)
+            @internalDate = u.clearDateHMS(new Date date)
+        else
+            @date = null
+            @internalDate = u.clearDateHMS(new Date)
+        if highlightStartDate
+            @highlightStartDate = u.clearDateHMS(new Date highlightStartDate)
+        if highlightEndDate
+            @highlightEndDate = u.clearDateHMS(new Date highlightEndDate)
 
+        @calculateStartDate()
         @autoHideDatePicker = new AutoHide
             widget: view: =>
                 m '.DatePickerWidget',
                     m '.NavBar',
-
-                        m 'span.PreYear', onclick: @preYear, '<<'
-
-                        m 'span.PreMonth', onclick: @preMonth, '<'
-
+                        m 'span.PreYear', onclick: @preYear, m.trust LEFT_DOUBLE_ARROW
+                        m 'span.PreMonth', onclick: @preMonth,  m.trust LEFT_ARROW
                         m 'span.CurrentMonth',
-                            m 'span.CurrentYear', @displayDate.getFullYear() + '-' + (@displayDate.getMonth() + 1)
-
-                        m 'span.NextMonth', onclick: @nextMonth, '>'
-
-                        m 'span.NextYear', onclick: @nextYear, '>>'
+                            @internalDate.getFullYear() + '年 ' + (@internalDate.getMonth() + 1) + '月'
+                        m 'span.NextMonth', onclick: @nextMonth, m.trust RIGHT_ARROW
+                        m 'span.NextYear', onclick: @nextYear, m.trust RIGHT_DOUBLE_ARROW
 
                     m '.DayBar',
-                        for d in i18n.dayName
-                            m 'span.DayName', d
+                        for d in DAY_NAME
+                            m 'span.Day', d
 
-                    m '.DateList'
-                    ,
-                        onclick: @selectDate
-                    ,
-                        for d in [ 0..(@startDay + @totalDay - 1) ]
-                            dObj = new Date(@displayDate)
-                            dObj.setDate( d - @startDay + 1)
-                            if d >= @startDay
-                                m 'span.Date'
-                                ,
-                                    className:
-                                        [
-                                            if @ifDateAvailable(dObj) then 'Available' else ''
-                                        ,
-                                            if (@date? and
-                                                dObj.getDate() == @date.getDate() and
-                                                dObj.getMonth() == @date.getMonth() and
-                                                dObj.getFullYear() == @date.getFullYear()
-                                            )
-                                                'Current'
-                                            else ''
-                                        ].join ' '
-                                    'data-year': dObj.getFullYear()
-                                    'data-month': dObj.getMonth()
-                                    'data-date': dObj.getDate()
+                    m '.DateList', onclick: @selectDate,
+                        for d in [0..41]
+                            dObj = new Date(@startDate.getTime() + d*24*3600*1000)
+                            monthStart = (new Date(@internalDate))
+                            monthStart.setDate(1)
+                            monthEnd = (new Date(@internalDate))
+                            monthEnd.setMonth(@internalDate.getMonth() + 1)
+                            monthEnd.setDate(0)
 
-                                , d - @startDay + 1
+                            m 'span.Date',
+                                className:
+                                    [
+                                        if (dObj >= monthStart and dObj <= monthEnd) then 'InMonth'
+                                    ,
+                                        unless @ifDateAvailable(dObj) then 'Unavailable' else ''
+                                    ,
+                                        if (dObj.getTime() == @date?.getTime()) then 'Current' else ''
+                                    ,
+                                        if @highlightStartDate?.getTime() < dObj.getTime() < @highlightEndDate?.getTime()
+                                            'Highlight'
+                                        else ''
+                                    ,
+                                        if @highlightStartDate?.getTime() == dObj.getTime()
+                                            'HighlightStart'
+                                        else if @highlightEndDate?.getTime() == dObj.getTime()
+                                            'HighlightEnd'
+                                    ].join ' '
+                                'data-year': dObj.getFullYear()
+                                'data-month': dObj.getMonth()
+                                'data-date': dObj.getDate()
 
-                            else
-                                m 'span.NoDate', ''
-
-                    if @selectTime then [
-                        m '.TimeBar',
-                            m 'span.TimeLabel', i18n.hour
-                            m 'span.TimeLabel', i18n.minute
-                            m 'span.TimeLabel', i18n.second
+                            , dObj.getDate()
 
 
-                        m '.TimeList', onclick: @setHMS,
-                            m 'ul.HourList',
-                                for hour, i in hourArray then m 'li' ,
-                                        oncreate: @scrollToView
-                                        key: i
-                                        className: if hour == u.formatXX @date.getHours() then 'Current' else ''
-                                        'data-hour': hour
-                                    , hour
-                            m 'ul.MinuteList',
-                                for min, i in minuteArray then m 'li' ,
-                                        oncreate: @scrollToView
-                                        key: i
-                                        className: if min == u.formatXX @date.getMinutes() then 'Current' else ''
-                                        'data-min': min
-                                    ,   min
-                            m 'ul.SecondList',
-                                for second, i in secondArray then m 'li',
-                                        oncreate: @scrollToView
-                                        key: i
-                                        className: if second == u.formatXX @date.getSeconds() then 'Current' else ''
-                                        'data-second': second
-                                    ,   second
-                    ]
-    init: ->
+    calculateStartDate: ->
         # from which day?
-        d = new Date(@displayDate)
-        d.setDate(0)
-        @startDay = d.getDay()
-        # how many days in this month?
-        d = new Date(@displayDate.getFullYear(), @displayDate.getMonth() + 1, 0)
-        @totalDay = d.getDate()
-
-
-    scrollToView: (vnode) ->
-        elem = vnode.dom
-        if u.targetHasClass elem, 'Current'
-            offsetTop = elem.offsetTop
-            elem.parentNode.scrollTop = offsetTop
+        monthStart = new Date @internalDate
+        monthStart.setDate(1)
+        d = monthStart.getTime()
+        for i in [0..6]
+            @startDate = (new Date(d - i * 24 * 3600 * 1000))
+            if @startDate.getDay() == 0 then return
 
     preMonth: (e) =>
-        @displayDate.setMonth(@displayDate.getMonth() - 1)
-        @init()
+        @internalDate.setMonth(@internalDate.getMonth() - 1)
+        @calculateStartDate()
         u.cancelBubble e
 
     nextMonth: (e) =>
-        @displayDate.setMonth(@displayDate.getMonth() + 1)
-        @init()
+        @internalDate.setMonth(@internalDate.getMonth() + 1)
+        @calculateStartDate()
         u.cancelBubble e
 
     preYear: (e) =>
-        @displayDate.setFullYear(@displayDate.getFullYear() - 1)
-        @init()
+        @internalDate.setFullYear(@internalDate.getFullYear() - 1)
+        @calculateStartDate()
         u.cancelBubble e
 
     nextYear: (e) =>
-        @displayDate.setFullYear(@displayDate.getFullYear() + 1)
-        @init()
+        @internalDate.setFullYear(@internalDate.getFullYear() + 1)
+        @calculateStartDate()
         u.cancelBubble e
 
     selectDate: (e) =>
-        if u.targetHasClass (u.getTarget e), 'Available'
-            @date.setFullYear u.getTargetData(e, 'year')
-            @date.setMonth u.getTargetData(e, 'month')
-            @date.setDate u.getTargetData(e, 'date')
-            @onSelect @date
-            @displayDate.setDate @date.getDate()
-            unless @selectTime then @autoHideDatePicker.hide()
-
-    setHMS: (e) =>
-        hour = parseInt (u.getTargetData(e, 'hour'))
-        unless isNaN hour then @date.setHours hour
-        min = parseInt (u.getTargetData(e, 'min'))
-        unless isNaN min then @date.setMinutes min
-        second = parseInt (u.getTargetData(e, 'second'))
-        unless isNaN second then @date.setSeconds second
-        @onSelect @date
+        unless u.targetHasClass (u.getTarget e), 'Unavailable'
+            if u.getTargetData(e, 'year')
+                @date ?= u.clearDateHMS(new Date)
+                @date.setFullYear u.getTargetData(e, 'year')
+                @date.setMonth u.getTargetData(e, 'month')
+                @date.setDate u.getTargetData(e, 'date')
+                @onSelect @date, e
 
     view: ->
         m '.DatePicker',
-            m 'input.DateInput',
-                readonly: true
+            className: if @autoHideDatePicker.showing then 'Expanded' else ''
+        ,
+            m '.DateLabel',
                 onclick: @autoHideDatePicker.show
-                value: if @selectTime then u.formatDateWithHMS @date else u.formatDate @date
-            m 'span.DateIcon', u.svg dateIcon
+                className: unless @date then 'Note' else ''
+            , if @date then u.formatDate @date else '请选择日期'
+            m '.DateIcon', m.trust CALENDAR
             @autoHideDatePicker.view()
 
 DatePicker.mss =
     DatePicker:
-        width: '250px'
         position: 'relative'
-        DateInput:
-            lineHeight: '2em'
-            display: 'block'
-            fontSize: '0.9em'
-            width: '100%'
-            padding: 0
-            textAlign: 'center'
-            border: '1px solid ' + style.border[4]
-            WebkitAppearance: 'none'
-            borderRadius: 0
+        width: '240px'
+        fontSize: '14px'
+        color: '#333'
+        DateLabel:
+            boxSizing: 'border-box'
+            height: '34px'
+            lineHeight: '32px'
+            paddingLeft: '12px'
+            border: '1px solid #DADFE3'
+            borderRadius: '4px'
+            cursor: 'pointer'
+            $hover:
+                borderColor: '#2F88FF'
+        Note: color: '#D6D6D6'
         DateIcon:
             position: 'absolute'
+            top: '5px'
+            right: '12px'
             svg:
-                fill: style.text[1]
-                height: '1.4em'
-                width: '1.4em'
-                padding: '0.3em'
-            top: 0
-            left: 0
+                width: '14px'
+                fill: '#999'
+
         DatePickerWidget:
             position: 'absolute'
-            top: '1.9em'
+            userSelect: 'none'
+            width: '288px'
+            height: '280px'
+            top: '38px'
             left: 0
-            border: '1px solid ' + style.border[4]
-            width: '248px'
-            background: '#fff'
-            zIndex: 999
+            background: '#FFF'
+            boxShadow: '0px 2px 6px 0px #00000014'
+            borderRadius: '4px'
+            zIndex: 1
             NavBar:
-                padding: '0.3em 0.9em'
                 textAlign: 'center'
-                lineHeight: '2em'
-                height: '2em'
+                lineHeight: '38px'
+                height: '38px'
+                background: '#F8F9FA'
+                borderRadius: '3px 3px 0 0'
+                position: 'relative'
 
                 PreYear_PreMonth_NextMonth_NextYear:
-                    display: 'inline-block'
-                    borderRadius: '50%'
-                    width: '2em'
-                    height: '2em'
-                    $hover:
-                        cursor: 'pointer'
-                        color: style.main[5]
+                    position: 'absolute'
+                    top: '6px'
+                    width: '16px'
+                    svg:
+                        width: '16px'
+                        stroke: '#999'
+                    cursor: 'pointer'
+                    $hover: svg: stroke: '#2F88FF'
+
+                PreYear: left: '12px'
+                PreMonth: left: '40px'
+                NextYear: right: '12px'
+                NextMonth: right: '40px'
+
 
                 CurrentMonth:
                     display: 'inline-block'
+                    fontWeight: '600'
 
             DayBar:
-                padding: '4px 12px'
-                borderBottom: '1px solid #eee'
-                fontSize: '0.9em'
-                span:
-                    width: '32px'
+                padding: '16px 16px 0'
+                Day:
                     display: 'inline-block'
+                    width: '24px'
+                    height: '24px'
+                    lineHeight: '22px'
                     textAlign: 'center'
-                    margin: 0
+                    fontSize: '14px'
+                    margin: '3px 6px'
 
             DateList:
-                padding: '0px 12px 12px'
-                lineHeight: '28px'
-
-                span:
+                padding: '0px 16px 18px'
+                Date:
+                    boxSizing: 'border-box'
                     display: 'inline-block'
-                    width: '28px'
-                    height: '28px'
-                    padding: '2px'
+                    verticalAlign: 'middle'
+                    width: '24px'
+                    height: '24px'
+                    lineHeight: '22px'
                     textAlign: 'center'
-                    fontSize: '0.9em'
-                    color: style.text[5]
-                    margin: 0
-                    borderRadius: '50%'
+                    fontSize: '14px'
+                    margin: '3px 6px'
+                    borderRadius: '4px'
+                    cursor: 'pointer'
+                    color: '#D6D6D6'
+                InMonth:
+                    color: '#333'
 
                 Current:
-                    color: '#fff !important'
-                    background: style.main[4] + ' !important'
-
-                Available:
-                    color: style.text[0]
-                    $hover:
-                        color: '#fff'
-                        cursor: 'pointer'
-                        background: style.main[5]
-
-            TimeBar:
-                borderTop: '1px solid ' + style.border[4]
-                TimeLabel:
-                    padding: '8px 0'
-                    fontSize: '0.9em'
-                    display: 'inline-block'
-                    width: '80px'
-                    textAlign: 'center'
-
-            TimeList:
-                HourList_MinuteList_SecondList:
+                    boxSizing: 'border-box'
+                    color: '#2F88FF'
+                    border: '1px solid #2F88FF'
                     position: 'relative'
-                    padding: 0
-                    margin: 0
-                    marginBottom: '8px'
-                    display: 'inline-block'
-                    height: '80px'
-                    width: '80px'
-                    overflow: 'auto'
-                    listStyle: 'none'
-                    li:
-                        fontSize: '0.9em'
-                        textAlign: 'center'
-                        margin: '0.2em'
-                        $hover:
-                            color: style.text[8]
-                            background: style.main[5]
-                    Current:
-                        color: style.text[8]
-                        background: style.main[4]
+                    zIndex: 1
+
+                Unavailable:
+                    color: '#D6D6D6'
+                    cursor: 'not-allowed'
+                Highlight:
+                    width: '48px'
+                    height: '22px'
+                    margin: '4px -6px'
+                    background: '#EDF1F5'
+                    borderRadius: 0
+                'Highlight.Current':
+                    border: 'none'
+                HighlightStart_HighlightEnd:
+                    position: 'relative'
+                    background: '#2F88FF'
+                    color: '#FFF'
+                HighlightStart:
+                    $after:
+                        content: '""'
+                        position: 'absolute'
+                        width: '12px'
+                        height: '22px'
+                        background: '#EDF1F5'
+                        top: '0.5px'
+                        right: '-12px'
+                HighlightEnd:
+                    $after:
+                        content: '""'
+                        position: 'absolute'
+                        width: '12px'
+                        height: '22px'
+                        background: '#EDF1F5'
+                        top: '0.5px'
+                        left: '-12px'
+
+
+    Expanded:
+        DateLabel:
+            borderColor: '#2F88FF'
+            boxShadow: '0 0 0 2px #2F88FF26'
 
 
 module.exports = DatePicker

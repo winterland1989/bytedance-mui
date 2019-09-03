@@ -33,6 +33,7 @@ clearDateHMS = (date) ->
     date.setHours 0
     date.setMinutes 0
     date.setSeconds 0
+    date.setMilliseconds 0
     date
 
 # format Date to yyyy-mm-dd
@@ -78,11 +79,11 @@ firstErrorInArray = (arr) ->
     for x in arr
         if x instanceof Error then return x
 
-# remove an element from array and return it, return undefined if not in array
+# remove an element from array and return the origin index, return -1 if not in array
 removeFromArray = (arr, x) ->
     i = arr.indexOf x
     if i != -1 then arr.splice i, 1
-    undefined
+    i
 
 svgCounter = 0
 svg = (svg) ->

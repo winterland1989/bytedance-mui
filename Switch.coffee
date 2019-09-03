@@ -1,7 +1,6 @@
 m = require 'mithril'
 s = require 'mss-js'
 
-style = require './style'
 u = require './utils'
 
 class Switch
@@ -28,7 +27,7 @@ Switch.mss =
         height: '1em'
         borderRadius: '0.6em'
         padding: '0.15em'
-        background: style.main[4]
+        background: '#2F88FF'
         SwitchBtn:
             left: '1em'
 
@@ -37,17 +36,12 @@ Switch.mss =
         height: '1em'
         borderRadius: '0.6em'
         padding: '0.15em'
-        background: style.grey[4]
-        $hover:
-            background: style.grey[5]
+        background: '#E4E9ED'
 
     Switch:
         display: 'inline-block'
         position: 'relative'
         boxSizing: 'content-box'
-        $hover:
-            background: style.main[5]
-            cursor: 'pointer'
         SwitchBtn:
             position: 'relative'
             width: '1em'

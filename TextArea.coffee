@@ -1,11 +1,10 @@
 m = require 'mithril'
 s = require 'mss-js'
-style = require './style'
 u = require './utils'
 
 class TextArea
     constructor: ({
-        @content = ''           # String
+        @value = ''           # String
     ,   @disabled = false       # Boolean
     ,   @placeholder = ''       # String
     ,   @onChange = u.noOp      # (String) -> a | Error
@@ -25,7 +24,7 @@ class TextArea
         @validationMsg = ''     # String
 
     submit: ->
-        if @validationMsg == '' then @content
+        if @validationMsg == '' then @value
         else new Error @validationMsg
 
     validateInternal: (c) ->
@@ -36,11 +35,11 @@ class TextArea
         @validationMsg = ''
         if err instanceof Error
             @validationMsg = err.message
-        @content = c
+        @value = c
 
     onkeyupInternal: (e) =>
         c = (u.getTarget e).value
-        @content = c
+        @value = c
         err = @onKeyup c
         @validationMsg = ''
         if err instanceof Error
@@ -55,12 +54,12 @@ class TextArea
                 target = u.getTarget e
                 start = target.selectionStart
                 end = target.selectionEnd
-                @content = c.substring(0, start) + '\t' + c.substring(end)
+                @value = c.substring(0, start) + '\t' + c.substring(end)
                 target.selectionStart =
                 target.selectionEnd = start + 1
         else
-            @content = c
-        err = @onKeydown @content
+            @value = c
+        err = @onKeydown @value
         @validationMsg = ''
         if err instanceof Error
             @validationMsg = err.message
@@ -72,7 +71,7 @@ class TextArea
                 onchange: @onChangeInternal
                 onkeyup: @onkeyupInternal
                 onkeydown: @onkeydownInternal
-                value: @content
+                value: @value
                 placeholder: @placeholder
                 rows: @rows
                 style:
@@ -88,15 +87,15 @@ TextArea.mss =
         width: '400px'
         Input:
             display: 'block'
-            border: '1px solid ' + style.border[4]
+            border: '1px solid ' + {}.border
             fontSize: '1em'
             padding: '0 0.4em'
             WebkitAppearance: 'none'
             borderRadius: 0
             width: '100%'
         ValidationMsg: s.LineSize('1.93em', '1em')
-            background: style.warn[5]
-            color: style.text[8]
+            background: {}.warn
+            color: {}.text
             position: 'absolute'
             bottom: 0
             left: 0

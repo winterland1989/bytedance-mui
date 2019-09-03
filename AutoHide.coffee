@@ -3,22 +3,22 @@ u = require './utils'
 
 class AutoHide
     constructor: ({
-        @widget             # mithril view
+        @widget             # mithril widget
     ,   @onHide = u.noOp    # () -> a
     }) ->
-        @showWidget = false # Boolean
+        @showing = false # Boolean
 
     onHideInternal: (elem) -> (e) =>
         unless elem.contains e.target
-            @showWidget = false
+            @showing = false
         m.redraw()
         # don't cancel event bubbling
         @onHide()
         true
 
-    show: => @showWidget = true
+    show: => @showing = true
     hide: =>
-        @showWidget = false
+        @showing = false
         @onHide()
 
     view: ->
@@ -30,6 +30,6 @@ class AutoHide
             onremove: (vnode) ->
                 window.removeEventListener 'click', self.onHideInternal(vnode.dom), true
 
-        ,   if @showWidget then @widget.view()
+        ,   if @showing then @widget.view()
 
 module.exports = AutoHide

@@ -1,6 +1,5 @@
 m = require 'mithril'
 s = require 'mss-js'
-style = require './style'
 u = require './utils'
 { BUTTON_WIDTH_MAP, BUTTON_HEIGHT_MAP, FONTSIZE_MAP } = require './CONSTANT'
 
@@ -8,7 +7,7 @@ module.exports = class Button
     constructor: ({
         @label                      # String | mithril view | [mithril views]
     ,   @disabled = false           # Boolean (default = false)
-    ,   @onClick = u.noOp           # (data :: String) -> a (default = ->)
+    ,   @onClick = u.noOp           # (data :: String, e :: DOMEvent) -> a (default = ->)
     ,   @data = ''                  # String (default = '')
     ,   @size = 'M'                 # size: 'XS' | 'S' | 'M' | 'L' | 'XL'         (default = 'M')
     ,   @width ='FIXED'             # width: 'FIXED' | 'PADDING' | '100%', '123px'...       (default = '100px')
@@ -17,7 +16,7 @@ module.exports = class Button
     onClickInternal: (e) =>
         unless @disabled
             data = u.getCurrentTargetData(e, 'data')
-            @onClick(data)
+            @onClick(data, e)
 
     view: ->
         self = @
@@ -42,6 +41,7 @@ Button.mss =
         position: 'relative'
         borderRadius: '4px'
         border: '1px solid #DADFE3'
+        userSelect: 'none'
         textAlign: 'center'
         color: '#333'
         background: '#F8F9FA'

@@ -47,6 +47,7 @@
     date.setHours(0);
     date.setMinutes(0);
     date.setSeconds(0);
+    date.setMilliseconds(0);
     return date;
   };
 
@@ -111,7 +112,7 @@
     if (i !== -1) {
       arr.splice(i, 1);
     }
-    return void 0;
+    return i;
   };
 
   svgCounter = 0;

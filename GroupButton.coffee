@@ -1,73 +1,131 @@
 m = require 'mithril'
 s = require 'mss-js'
-style = require './style'
 u = require './utils'
-Button = require './Button'
-doneIcon = require 'mmsvg/google/msvg/action/done'
+{ BUTTON_WIDTH_MAP, BUTTON_HEIGHT_MAP, FONTSIZE_MAP } = require './CONSTANT'
 
-class ButtonGroup
+class GroupButton
     constructor: ({
-        @textArray                # [String]
-    ,   @enabledIndexArray = []   # [Int]
-    ,   @multiSelection = true # Boolean
-    ,   @onChange = u.noOp  # ([Int]) -> a
+        @textArray                # [String | mithril view]
+    ,   @stateArray = (false for i in @textArray)       # [Boolean]
+    ,   @disabledArray = (false for i in @textArray)    # [Boolean]
+    ,   @multi = true             # Boolean
+    ,   @size = 'M'                 # size: 'XS' | 'S' | 'M' | 'L' | 'XL'         (default = 'M')
+    ,   @onSelect = u.noOp        # (Int) -> a
+    ,   @onUnselect = u.noOp        # (Int) -> a
     }) ->
 
     onClickInternal: (e) =>
-        i = parseInt u.getCurrentTargetData e, 'index'
+        i = parseInt (u.getCurrentTargetData e, 'index')
+        if @disabledArray[i] then return
+        unless @multi
+            for s, j in @stateArray
+                if s
+                    if i != j
+                        @onUnselect j
+                        @stateArray[j] = false
 
-        if @multiSelection
-            i2 = @enabledIndexArray.indexOf i
-            if i2 == -1
-                @enabledIndexArray.push i
-            else @enabledIndexArray.splice i2, 1
-        else @enabledIndexArray = [i]
-
-        @onChange @enabledIndexArray
+        if @stateArray[i] == false
+            @stateArray[i] = true
+            @onSelect i
+        else
+            @stateArray[i] = false
+            @onUnselect i
 
     view: ->
-        m 'ul.ButtonGroup',
+        m 'ul.GroupButton',
+            style:
+                height: BUTTON_HEIGHT_MAP[@size]
+                lineHeight: BUTTON_HEIGHT_MAP[@size]
+                fontSize: FONTSIZE_MAP[@size]
+        ,
             for t, i in @textArray
-                if i in @enabledIndexArray
-                    m 'li.EnabledBtn', {'data-index': i, onclick: @onClickInternal},
-                        u.svg doneIcon
-                        m 'span', t
-                else m 'li.DisabledBtn', {'data-index': i, onclick: @onClickInternal}, t
+                state = @stateArray[i]
+                disabled = @disabledArray[i]
 
-ButtonGroup.mss =
-    ButtonGroup:
+                m 'li.ButtonItem',
+                    'data-index': i
+                    className: [(if @multi then 'Multi' else ''),
+                                    (if state then 'Selected' else ''),
+                                        (if disabled then 'Disabled' else '')].join ' '
+                    onclick: @onClickInternal
+                , t
+
+GroupButton.mss =
+    GroupButton:
         margin: 0
         padding: 0
-        EnabledBtn_DisabledBtn: s.LineSize('2em', '1em')
+        listStyle: 'none'
+        ButtonItem:
+            userSelect: 'none'
             position: 'relative'
             display: 'inline-block'
-            margin: 0
-            marginRight: '1em'
-            width: '100px'
+            boxSizing: 'border-box'
+            minWidth: '100px'
+            verticalAlign: 'middle'
+            padding: '0 16px'
+            margin: '0 -1px 0 0'
+            border: '1px solid #DADFE3'
             textAlign: 'center'
-            listStyle: 'none'
-            outline: '1px solid ' + style.main[4]
-            $hover:
-                cursor: 'pointer'
-                background: style.main[5]
-                outline: '1px solid ' + style.main[5]
-                color: style.text[8]
-            svg:
-                left: '0.3em'
-                top: '0.3em'
+            color: '#333'
+            background: '#FFF'
+            cursor: 'pointer'
+            zIndex: 1
+            $hover_$pressed:
+                borderColor: '#2F88FF'
+                color: '#2F88FF'
+            $pressed:
+                outline: 'none'
+                background: '#F0F9FF'
+            $after:
                 position: 'absolute'
-                fill: style.text[8]
-                height: '1.4em'
-                width: '1.4em'
+                top: '2px'
+                right: '2px'
+                width: 0
+                height: 0
+                borderTop: '3.5px solid #DADFE3'
+                borderRight: '3.5px solid #DADFE3'
+                borderBottom: '3.5px solid #00000000'
+                borderLeft: '3.5px solid #00000000'
+        '.ButtonItem:first-child':
+            borderRadius: '4px 0 0 4px'
+        '.ButtonItem:last-child':
+            borderRadius: '0 4px 4px 0'
 
-        EnabledBtn:
-            color: style.text[8]
-            background: style.main[4]
+        Multi: $after: content: '""'
 
-        DisabledBtn:
-            color: style.main[4]
-            background: '#fff'
+        Selected:
+            borderColor: '#1C68D9'
+            color: '#1C68D9'
+            zIndex: 3
+            background: '#F0F9FF'
+            $after:
+                borderTop: '3.5px solid #2F88FF'
+                borderRight: '3.5px solid #2F88FF'
+                borderBottom: '3.5px solid #F0F9FF'
+                borderLeft: '3.5px solid #F0F9FF'
 
-module.exports = ButtonGroup
+        Disabled:
+            borderColor: '#EDF1F5'
+            background: '#FCFCFC'
+            cursor: 'not-allowed'
+            color: '#D6D6D6'
+            zIndex: 0
+
+        'Selected.Disabled':
+            borderColor: '#A8D7FF'
+            background: '#F0F9FF'
+            cursor: 'not-allowed'
+            color: '#A8D7FF'
+            zIndex: 2
+            $after:
+                borderTop: '3.5px solid #A8D7FF'
+                borderRight: '3.5px solid #A8D7FF'
+                borderBottom: '3.5px solid #F0F9FF'
+                borderLeft: '3.5px solid #F0F9FF'
+
+
+
+
+module.exports = GroupButton
 
 

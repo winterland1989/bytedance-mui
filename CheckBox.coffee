@@ -1,7 +1,5 @@
 m = require 'mithril'
 s = require 'mss-js'
-
-style = require './style'
 u = require './utils'
 
 { CHECK_SVG, HYPHEN_SVG } = require './CONSTANT'
@@ -9,53 +7,76 @@ u = require './utils'
 
 class CheckBox
     constructor: ({
-        @selected = true     # Boolean
+        @checked = true     # Boolean
     ,   @label = 'foo'       # String
     ,   @disabled = false    # Boolean
     ,   @partial = false     # Boolean
-    ,   @onToggle = u.noOp   # (Boolean) -> a
+    ,   @onToggle = u.noOp   # (checked :: Boolean, e :: DOMEvent) -> a
     }) ->
 
     onToggleInternal: (e) =>
-        @selected = not @selected
-        @onToggle @selected
+        @checked = not @checked
+        @onToggle @selected, e
 
     view: ->
-        m '.CheckBox'
+        m 'label.CheckBox'
         ,
-            onclick: @onToggleInternal
-            className:  if @selected then 'Enabled' else 'Disabled'
-        ,  if @enabled
-            if @partial then HYPHEN_SVG else CHECK_SVG
+            m 'input',
+                onchange: @onToggleInternal
+                type: 'checkbox'
+                checked: @checked
+                disabled: @disabled
+            m '.CheckMark',
+                if @checked then (if @partial then m.trust HYPHEN_SVG else m.trust CHECK_SVG)
+            m '.CheckLabel', @label
 
 CheckBox.mss =
     CheckBox:
         display: 'inline-block'
-        width: '1em'
-        height: '1em'
-        lineHeight: '1em'
-        textAlign: 'center'
+        verticalAlign: 'middle'
         cursor: 'pointer'
-        border: '1px solid ' + style.main[4]
-        color: style.main[4]
-        borderRadius: '0.1em'
+        input: display: 'none'
         verticalAlign: 'middle'
         userSelect: 'none'
-        padding: 0
-        svg:
-            width: '1em'
-            height: '1em'
 
-    '.CheckBox.Enabled':
-        background: style.main[4]
-        svg:
-            fill: '#fff'
+        CheckMark:
+            display: 'inline-block'
+            height: '16px'
+            width: '16px'
+            boxSizing: 'border-box'
+            borderRadius: '2px'
+            verticalAlign: 'middle'
+            border: '1px solid #2F88FF'
+            background: 'none'
+            svg:
+                width: '10px'
+                height: '10px'
+                margin: '2px'
+                fill: '#FFF'
 
-    '.CheckBox.Disabled':
-        background: 'none'
-        color: style.main[4]
-        svg:
-            fill: style.main[4]
+        CheckLabel:
+            display: 'inline-block'
+            marginLeft: '8px'
+            color: '#333'
+
+        'input:disabled ~ .CheckLabel':
+            color: '#D6D6D6'
+
+        'input:disabled ~ .CheckMark':
+            background: '#FCFCFC'
+            border: '1px solid #EDF1F5'
+
+        'input:checked ~ .CheckMark':
+            background: '#2F88FF'
+            svg:
+                fill: '#fff'
+
+        'input:disabled:checked ~ .CheckMark':
+            background: '#A8D7FF'
+            border: '1px solid #A8D7FF'
+            svg:
+                fill: '#fff'
+
 
 module.exports = CheckBox
 

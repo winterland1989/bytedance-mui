@@ -5,12 +5,14 @@ delIcon = require 'mmsvg/google/msvg/action/delete'
 infoIcon = require 'mmsvg/google/msvg/action/info-outline'
 msgIcon = require 'mmsvg/google/msvg/communication/message'
 
+List = require '../List'
 Button = require '../Button'
 ButtonThemed = require '../ButtonThemed'
 ButtonDashed = require '../ButtonDashed'
 ButtonWire = require '../ButtonWire'
 GroupButton = require '../GroupButton'
 DatePicker = require '../DatePicker'
+DateRange = require '../DateRange'
 Switch = require '../Switch'
 CheckBox  =require '../CheckBox'
 DropDown = require '../Dropdown'
@@ -20,37 +22,79 @@ TagInput  =require '../TagInput'
 TextArea = require '../TextArea'
 Collaspe = require '../Collaspe'
 Notify = require '../Notify'
-QuestionMark = require '../QuestionMark'
+Table = require '../Table'
 
 u = require '../utils'
-style = require '../style'
-tableView = require '../tableView'
 
 class Demo
     constructor: ->
+        @demoLists = [
+            new List
+                itemArray: ['Foo', 'Bar', 'Qux']
+                onSelect: (i) =>
+                    @demoNotify1.show(msgIcon, i)
+            new List
+                itemArray: ['Foo', 'Bar', 'Qux', 'Foo', 'Bar', 'Qux', 'Foo', 'Bar', 'Qux']
+                onSelect: (i) =>
+                    @demoNotify1.show(msgIcon, i)
+            new List
+                itemArray: ['Foo', 'Bar', 'Qux', 'Foo', 'Bar', 'Qux', 'Foo', 'Bar', 'Qux']
+                size: 'S'
+                onSelect: (i) =>
+                    @demoNotify1.show(msgIcon, i)
+            new List
+                itemArray: ['Foo', 'Bar', 'Qux', 'Foo', 'Bar', 'Qux', 'Foo', 'Bar', 'Qux']
+                searchPlaceHolder: 'search...'
+                size: 'XS'
+                onSelect: (i) =>
+                    @demoNotify1.show(msgIcon, i)
+        ]
+        @demoListDoc = new Collaspe
+            titleArray: ['List document']
+            widgetArray: [
+                m 'textarea', readonly: true,
+                    """
+                    List = require 'mui-js/List'
+
+                    demoList = new List
+                        itemArray: ['Foo', 'Bar', 'Qux']
+                    """
+            ]
         @demoCheckBoxes = [
             new CheckBox
-                enable: true
+                checked: true
+            new CheckBox
+                label: 'bar'
+                checked: false
             new CheckBox
                 disabled: true
-                enable: true
+                checked: true
             new CheckBox
-                enable: true
+                disabled: true
+                checked: false
+            new CheckBox
+                checked: true
+                partial: true
+            new CheckBox
+                checked: true
+                disabled: true
                 partial: true
         ]
         @demoCheckBoxDoc = new Collaspe
             titleArray: ['CheckBox document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     CheckBox = require 'mui-js/CheckBox'
 
                     demoCheckBox = new CheckBox
-                        enable: true
+                        checked: true
 
                     ###
-                        enable = true       # Boolean
+                        checked = true     # Boolean
+                        disabled = false       # Boolean
+                        partial = false        # Boolean
+                        label = ''             # String | mithril view
                         onToggle = ( -> )   # (Boolean) -> a
                     ###
                     """
@@ -94,24 +138,22 @@ class Demo
         @demoButtonDoc = new Collaspe
             titleArray: ['Button document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     Button = require 'mui-js/Button'
                     buildIcon = require 'mmsvg/google/msvg/action/build'
                     u = require 'mui-js/utils'
 
                     demoButton = new Button
-                        text: 'Build'
-                        prefix: u.svg buildIcon
+                        label: [buildIcon, 'Build']
 
                     ###
-                        text             # String
-                        prefix           # mithril svg view
-                        suffix           # mithril svg view
-                        data             # HashMap
-                        disabled         # Boolean
-                        onClick = (->)   # (HashMap) -> a
+                        label                      # String | mithril view | [mithril views]
+                        disabled = false           # Boolean (default = false)
+                        onClick = u.noOp           # (data :: String) -> a (default = ->)
+                        data = ''                  # String (default = '')
+                        size = 'M'                 # size: 'XS' | 'S' | 'M' | 'L' | 'XL'         (default = 'M')
+                        width ='FIXED'             # width: 'FIXED' | 'PADDING' | '100%', '123px'...  (default = '100px')
                     ###
                     """
             ]
@@ -119,8 +161,7 @@ class Demo
         @demoBtnGroupDoc = new Collaspe
             titleArray: ['GroupButton document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     GroupButton = require 'mui-js/GroupButton'
 
@@ -138,34 +179,91 @@ class Demo
             ]
 
 
-        @demoBtnGroup = new GroupButton
-            textArray: ['foo', 'bar', 'qux']
-            onChange: (enabledArray) =>
-                @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
+        @demoBtnGroups = [
+            new GroupButton
+                textArray: ['foo', 'bar', 'qux']
+                size: 'S'
+                onSelect: (enabledArray) =>
+                    @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
 
-        @demoBtnGroup2 = new GroupButton
-            textArray: ['foo', 'bar', 'qux']
-            multiSelection: false
-            onChange: (enabledArray) =>
-                @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
+            new GroupButton
+                textArray: ['foo', 'bar', 'qux']
+                onSelect: (enabledArray) =>
+                    @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
 
-        @demoDatePicker1 = new DatePicker
-            date: new Date()
+            new GroupButton
+                textArray: ['你好', '再见', '好好学习，天天向上']
+                multi: false
+                onSelect: (enabledArray) =>
+                    @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
 
-        @demoDatePicker2 = new DatePicker
-            date: new Date()
-            selectTime: true
+            new GroupButton
+                textArray: ['Selected', 'Selected(disabled)', 'Unselected', 'Unselected(disabled)']
+                stateArray: [true, true, false, false]
+                disabledArray: [false, true, false, true]
+                onSelect: (enabledArray) =>
+                    @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
+
+            new GroupButton
+                textArray: ['Selected', 'Selected(disabled)', 'Unselected', 'Unselected(disabled)']
+                stateArray: [true, true, false, false]
+                disabledArray: [false, true, false, true]
+                multi: false
+                onSelect: (enabledArray) =>
+                    @demoNotify1.show(msgIcon, JSON.stringify enabledArray)
+        ]
+
+        @demoDatePickers = [
+            new DatePicker
+                date: null
+            new DatePicker
+                date: new Date()
+                ifDateAvailable: (date) ->
+                    date >= new Date(Date.now() - 10*24*3600*1000)
+            new DatePicker
+                date: new Date()
+            new DatePicker
+                date: new Date()
+                highlightStartDate: new Date(Date.now() - 2*24*3600*1000)
+                highlightEndDate: new Date(Date.now() + 2*24*3600*1000)
+        ]
 
         @demoDatePickerDoc = new Collaspe
             titleArray: ['DatePicker document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     # modify i18n before use
                     DatePicker = require 'mui-js/DatePicker'
 
                     demoDatePicker2 = new DatePicker
+                        date: new Date()
+                        selectTime: true
+
+                    ###
+                        date                         # Date
+                        selectTime                   # Boolean
+                        ifDateAvailable = (-> true)  # (Date) -> Boolean
+                        onSelect = (->)              # (Date) -> a
+                    ###
+                    """
+            ]
+
+        @demoDateRanges = [
+            new DateRange
+                startDate: new Date(Date.now() - 3*24*3600*1000)
+                endDate: new Date()
+        ]
+
+        @demoDateRangeDoc = new Collaspe
+            titleArray: ['DateRange document']
+            widgetArray: [
+                m 'textarea', readonly: true,
+                    """
+                    # modify i18n before use
+                    DateRange = require 'mui-js/DateRange'
+
+                    demoDateRange2 = new DateRange
                         date: new Date()
                         selectTime: true
 
@@ -184,8 +282,7 @@ class Demo
         @demoSwitchDoc = new Collaspe
             titleArray: ['Switch document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     Switch = require 'mui-js/Switch'
 
@@ -200,24 +297,37 @@ class Demo
             ]
 
 
-        @demoDropDown1 = new DropDown
-            itemArray: ['foo', 'bar', '~~~']
-            currentIndex: 2
+        @demoDropDowns = [
+            new DropDown
+                itemArray: ['foo', 'bar', '~~~']
+                currentIndex: 2
 
-        @demoDropDown2 = new DropDown
-            itemArray: ['foo', 'bar', '~~~']
-            placeholder: 'please select a foo'
+            new DropDown
+                itemArray: ['foo', 'bar', '~~~']
+                disabled: true
+                size: 'S'
+                placeholder: 'please select a foo'
 
-        @demoDropDown3 = new DropDown
-            itemArray: (i.toString() for i in [1..100])
-            currentIndex: 20
-            allowEmptySelect: false
+            new DropDown
+                itemArray: ['foo', 'bar', '~~~']
+                size: 'S'
+                placeholder: 'please select a foo'
+
+            new DropDown
+                itemArray: (i.toString() for i in [1..100])
+                size: 'XS'
+                currentIndex: 20
+
+            new DropDown
+                itemArray: (i.toString() for i in [1..100])
+                size: 'XS'
+                searchPlaceHolder: 'enter digits...'
+        ]
 
         @demoDropDownDoc = new Collaspe
             titleArray: ['DropDown document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     DropDown = require 'mui-js/Dropdown'
 
@@ -268,8 +378,7 @@ class Demo
         @demoModalDoc = new Collaspe
             titleArray: ['Modal document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     Modal = require 'mui-js/Modal'
                     # make sure widget inside is a block element
@@ -294,27 +403,48 @@ class Demo
                     """
             ]
 
-        @demoTextInput1 = new TextInput
-            placeholder: 'type something...'
-            onChange: (str) ->
-                if str != 'ya!'
-                    new Error 'please input "ya!"'
-
-        @demoTextInput2 = new TextInput
-            placeholder: 'type digits and enter!'
-            onChange: (str) ->
-                unless (/^\d+$/).test str
-                    new Error 'please input some digits'
-            onEnter: (str) ->
-                unless (/^\d+$/).test str
-                    new Error 'please input some digits'
-                else alert str
+        @demoTextInputs = [
+            new TextInput
+                size: 'XS'
+                placeholder: 'type something...'
+                onPaste: (s) => @demoNotify1.show(msgIcon, s)
+            new TextInput
+                size: 'S'
+                placeholder: 'type something...'
+            new TextInput
+                placeholder: 'type something...'
+            new TextInput
+                size: 'L'
+                placeholder: 'type something...'
+            new TextInput
+                size: 'XL'
+                placeholder: 'type something...'
+            new TextInput
+                placeholder: '请输入密码'
+                password: true
+            new TextInput
+                placeholder: '请输入出价'
+                unit: '元'
+            new TextInput
+                prefix : 'http://'
+                placeholder: 'bytedance'
+                suffix: '.com'
+            new TextInput
+                disabled: true
+                prefix : 'http://'
+                placeholder: 'bytedance'
+                suffix: '.com'
+            new TextInput
+                error: true
+                prefix : 'http://'
+                placeholder: 'bytedance'
+                suffix: '.com'
+        ]
 
         @demoTextInputDoc = new Collaspe
             titleArray: ['TextInput document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     TextInput = require 'mui-js/TextInput'
 
@@ -344,8 +474,7 @@ class Demo
         @demoTagInputDoc = new Collaspe
             titleArray: ['TagInput document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     TagInput = require 'mui-js/TagInput'
 
@@ -366,27 +495,6 @@ class Demo
         @demoTagInput = new TagInput
             tagList: ['foo', 'bar', 'qux']
 
-        @demoQuestionMark = new QuestionMark
-            message: 'This is a help message, <a href="//nowhere">link</a><p>test</p><p>test</p><p>test</p>'
-
-        @demoQuestionMarkDoc = new Collaspe
-            titleArray: ['QuestionMark document']
-            widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
-                    """
-                    QuestionMark = require 'mui-js/QuestionMark'
-
-                    demoQuestionMark = new QuestionMark
-                        message: 'This is a help message, <a href="//nowhere">link</a>'
-
-                    ###
-                        @icon = mmsvg/action/help       # mmsvg icon
-                        @message = "hello world!"       # String
-                    ###
-                    """
-            ]
-
         @demoTextArea = new TextArea
             placeholder: 'type digits and enter!'
             onChange: (str) ->
@@ -400,8 +508,7 @@ class Demo
         @demoTextAreaDoc = new Collaspe
             titleArray: ['TextArea document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     TextArea = require 'mui-js/TextArea'
 
@@ -436,12 +543,52 @@ class Demo
             , {name: 'Kia', age: 13, salary: 20000}
             , {name: 'Lee', age: 14, salary: 40000}
             ]
+        @demoTables = [
+            new Table
+                columns: [
+                    {key: 'foo', title: 'FOO'}
+                    {key: 'bar', title: 'BAR'}
+                    {key: 'qux', title: 'QUX QUX', width: '50px'}
+                ]
+                data: [
+                    {foo: 1, bar: 2, qux: 3}
+                    {foo: 1, bar: 2, qux: 3}
+                    {foo: 1, bar: 2, qux: 3}
+                ]
+                striped: true
+            new Table
+                columns: [
+                    {key: 'foo', title: 'FOO'}
+                    {key: 'bar', title: 'BAR'}
+                    {key: 'qux', title: 'QUX'}
+                ]
+                data: [
+                    {foo: 1, bar: 2, qux: 3}
+                    {foo: 1, bar: 2, qux: 3}
+                    {foo: 1, bar: 2, qux: 3}
+                ]
+                borderType: 'HORIZONTAL'
+            new Table
+                columns: [
+                    {key: 'foo', minWidth: '184px', title: 'FOO', fixed: 'LEFT'}
+                    {key: 'bar', minWidth: '184px', title: 'BAR'}
+                    {key: 'bar', minWidth: '184px', title: 'BAR'}
+                    {key: 'bar', minWidth: '184px', title: 'BAR'}
+                    {key: 'qux', minWidth: '184px', title: 'QUX', fixed: 'RIGHT'}
+                ]
+                data: [
+                    {foo: 1, bar: 2, qux: 3}
+                    {foo: 1, bar: 2, qux: 3}
+                    {foo: 1, bar: 2, qux: 3}
+                ]
+                mainWidth: '300px'
+                mainScrollWidth: '200px'
+        ]
 
         @demoTableViewDoc = new Collaspe
             titleArray: ['tableView document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     tableView = require 'mui-js/tableView'
 
@@ -467,29 +614,37 @@ class Demo
                     """
             ]
 
-        @demoCollaspe = new Collaspe
-            titleArray: ['Hello', 'Byte']
-            expandedIndexArray: [1]
-            autoCollaspe: true
-            widgetArray: [
-                view: ->
-                    m 'span', 'hello world'
-            ,
-                view: ->
-                    m 'span', 'bye world'
-            ]
+        @demoCollaspes = [
+            new Collaspe
+                titleArray: ['Hello', 'Byte']
+                stateArray: [false, false]
+                widgetArray: [ (m 'span', 'hello world') , (m 'span', 'bye world') ]
+
+            new Collaspe
+                titleArray: ['Hello', 'Byte']
+                stateArray: [true, true]
+                autoCollaspe: false
+                borderType: 'HORIZONTAL'
+                widgetArray: [ (m 'span', 'hello world') , (m 'span', 'bye world') ]
+
+            new Collaspe
+                titleArray: ['Hello', 'Byte']
+                stateArray: [false, true]
+                borderType: 'NONE'
+                iconType: 'LEFT'
+                widgetArray: [ (m 'span', 'hello world') , (m 'span', 'bye world') ]
+        ]
 
         @demoCollaspeDoc = new Collaspe
             titleArray: ['Collaspe document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     Collaspe = require 'mui-js/Collaspe'
 
                     demoCollaspe = new Collaspe
                         titleArray: ['Hello', 'Byte']
-                        expandedIndexArray: [1]
+                        stateArray: [1]
                         autoCollaspe: true
                         widgetArray: [
                             view: ->
@@ -500,10 +655,12 @@ class Demo
                         ]
 
                     ###
-                        titleArray                # [String]
+                        titleArray                # [String | mithril widget]
+                        stateArray                # [Int]
                         widgetArray               # [mithril widget]
-                        autoCollaspe = false      # Boolean
-                        expandedIndexArray = []   # [Int]
+                        autoCollaspe = true       # Boolean
+                        iconType = 'RIGHT'        # 'RIGHT' | 'LEFT' | 'NONE'
+                        borderType = 'ALL'        # 'ALL' | 'HORIZONTAL' | 'NONE' (default = 'ALL')
                         onExpand   = (->)         # Int -> a
                         onCollaspe = (->)         # Int -> a
                     ###
@@ -539,8 +696,7 @@ class Demo
         @demoNotifyDoc = new Collaspe
             titleArray: ['Notify document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     Notify = require 'mui-js/Notify'
 
@@ -568,8 +724,7 @@ class Demo
         @demoSpinnerDoc = new Collaspe
             titleArray: ['Spinner document']
             widgetArray: [
-                view: ->
-                    m 'textarea', readonly: true,
+                m 'textarea', readonly: true,
                     """
                     u = require '../utils'
                     style = require '../style'
@@ -586,6 +741,11 @@ class Demo
     view: -> [
 
         m 'ul.Demo',
+
+
+            m 'li', @demoListDoc.view()
+            for l in @demoLists then m 'li', l.view()
+
             m 'li', @demoCheckBoxDoc.view()
             for cb in @demoCheckBoxes then m 'li', cb.view()
 
@@ -593,34 +753,32 @@ class Demo
             for btn in @demoButtons then m 'li', btn.view()
 
             m 'li', @demoBtnGroupDoc.view()
-            m 'li', @demoBtnGroup.view()
-            m 'li', @demoBtnGroup2.view()
+            for g in @demoBtnGroups
+                m 'li', g.view()
 
             m 'li', @demoDatePickerDoc.view()
-            m 'li', @demoDatePicker1.view()
-            m 'li', @demoDatePicker2.view()
+                for d in @demoDatePickers then m 'li', d.view()
+
+            m 'li', @demoDateRangeDoc.view()
+                for d in @demoDateRanges then m 'li', d.view()
 
             m 'li', @demoSwitchDoc.view()
             m 'li', @demoSwitch.view()
 
             m 'li', @demoDropDownDoc.view()
-            m 'li', @demoDropDown1.view()
-            m 'li', @demoDropDown2.view()
-            m 'li', @demoDropDown3.view()
+            for d in @demoDropDowns then m 'li', d.view()
 
             m 'li', @demoModalDoc.view()
             m 'li', @demoModalOpenBtn1.view(), @demoModal1.view()
             m 'li', @demoModalOpenBtn2.view(), @demoModal2.view()
 
             m 'li', @demoTextInputDoc.view()
-            m 'li', @demoTextInput1.view()
-            m 'li', @demoTextInput2.view()
+            for t in @demoTextInputs
+                m 'li', t.view()
 
             m 'li', @demoTagInputDoc.view()
             m 'li', @demoTagInput.view()
 
-            m 'li', @demoQuestionMarkDoc.view()
-            m 'li', @demoQuestionMark.view()
 
             m 'li', @demoTextAreaDoc.view()
             m 'li', @demoTextArea.view()
@@ -628,11 +786,11 @@ class Demo
 
 
             m 'li', @demoTableViewDoc.view()
-            m 'li', tableView(@demoTableViewColMap, @demoTableViewData)
-            m 'li', tableView(@demoTableViewColMap, @demoTableViewData, true)
+            for t in @demoTables then m 'li', t.view()
 
             m 'li', @demoCollaspeDoc.view()
-            m 'li', @demoCollaspe.view()
+            for c in @demoCollaspes
+                m 'li', c.view()
 
             m 'li', @demoNotifyDoc.view()
             m 'li', @demoNotify1.view(), @demoNotify2.view()
@@ -646,10 +804,9 @@ class Demo
 
             m 'li', @demoSpinnerDoc.view()
             m 'li',
-                u.spinner style.main[4]
-                u.spinner style.main[4], '5em'
-                u.spinner style.main[4], '2em', '0.3s'
-                u.spinner style.text[4], '5em'
+                u.spinner '#2F88FF'
+                u.spinner '#2F88FF', '5em'
+                u.spinner '#2F88FF', '2em', '0.3s'
 
         m '.Misc',
             m 'span', 'Winter\'s ui collection'
@@ -665,17 +822,18 @@ s.tag s.merge [
     ButtonWire.mss
     GroupButton.mss
     DatePicker.mss
+    DateRange.mss
     Switch.mss
     CheckBox.mss
     DropDown.mss
+    List.mss
     Modal.mss
     TextInput.mss
     TagInput.mss
-    QuestionMark.mss
     TextArea.mss
     Collaspe.mss
     Notify.mss
-    tableView.mss
+    Table.mss
 
     Modal:
         Button:
@@ -684,8 +842,8 @@ s.tag s.merge [
 
     body:
         fontSize: '14px'
-        fontFamily: '"Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif'
-        fontWeight: '300'
+        fontFamily: 'Helvetica, Tahoma, Arial, "PingFang SC", "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei"'
+        fontWeight: '400'
 
     Demo:
         listStyle: 'none'
@@ -696,7 +854,8 @@ s.tag s.merge [
         display: 'inline-block'
         marginRight: '4px'
         svg:
-            margin: '-4px 6px 0 0'
+            width: '16px'
+            margin: '-4px 2px 0 2px'
             verticalAlign: 'middle'
             fill: 'currentColor'
 
@@ -708,10 +867,9 @@ s.tag s.merge [
     Collaspe:
         width: '480px'
         textarea:
-            padding: '14px'
             resize: 'none'
             width: '100%'
-            height: '200px'
+            minHeight: '200px'
             border: 'none'
     Misc:
         position: 'fixed'

@@ -13,14 +13,14 @@
       this.widget = arg.widget, this.onHide = (ref = arg.onHide) != null ? ref : u.noOp;
       this.hide = bind(this.hide, this);
       this.show = bind(this.show, this);
-      this.showWidget = false;
+      this.showing = false;
     }
 
     AutoHide.prototype.onHideInternal = function(elem) {
       return (function(_this) {
         return function(e) {
           if (!elem.contains(e.target)) {
-            _this.showWidget = false;
+            _this.showing = false;
           }
           m.redraw();
           _this.onHide();
@@ -30,11 +30,11 @@
     };
 
     AutoHide.prototype.show = function() {
-      return this.showWidget = true;
+      return this.showing = true;
     };
 
     AutoHide.prototype.hide = function() {
-      this.showWidget = false;
+      this.showing = false;
       return this.onHide();
     };
 
@@ -48,7 +48,7 @@
         onremove: function(vnode) {
           return window.removeEventListener('click', self.onHideInternal(vnode.dom), true);
         }
-      }, this.showWidget ? this.widget.view() : void 0);
+      }, this.showing ? this.widget.view() : void 0);
     };
 
     return AutoHide;

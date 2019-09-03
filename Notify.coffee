@@ -1,7 +1,6 @@
 m = require 'mithril'
 s = require 'mss-js'
 u = require './utils'
-style = require './style'
 
 contentArray = []
 iconArray = []
@@ -67,7 +66,7 @@ Notify.mss =
             position: 'fixed'
             right: '1em'
             background: '#fff'
-            border: '1px solid ' + style.border[4]
+            border: '1px solid ' + {}.border
             zIndex: 9999
             borderRadius: '0.4em'
             transition: 'top 0.1s ease'

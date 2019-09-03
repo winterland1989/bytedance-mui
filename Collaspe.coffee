@@ -1,81 +1,119 @@
 m = require 'mithril'
 s = require 'mss-js'
 u = require './utils'
-style = require './style'
+{COLLASPE_ARROW} = require './CONSTANT'
 
-
-arrowRight = require 'mmsvg/google/msvg/hardware/keyboard-arrow-right'
-arrowDown = require 'mmsvg/google/msvg/hardware/keyboard-arrow-down'
 
 class Collaspe
     constructor: ({
-        @titleArray                # [String]
-    ,   @widgetArray               # [mithril widget]
-    ,   @autoCollaspe = false      # Boolean
-    ,   @expandedIndexArray = []   # [Int]
-    ,   @onExpand   = u.noOp       # Int -> a
-    ,   @onCollaspe = u.noOp       # Int -> a
+        @titleArray = []           # [String] | [mithril view]
+                                   # [Boolean], same length as @widgetArray, composed with false (collasped) and true (expanded)
+    ,   @widgetArray = []          # [String] | [mithril view]
+    ,   @stateArray = (false for _ in @widgetArray)
+    ,   @autoCollaspe = true       # Boolean (default = true)
+        @iconType = 'RIGHT'        # 'RIGHT' | 'LEFT' | 'NONE'
+    ,   @borderType = 'ALL'        # 'ALL' | 'HORIZONTAL' | 'NONE' (default = 'ALL')
+    ,   @onExpand   = u.noOp       # (index :: Int, e :: DOMEvent) -> a
+    ,   @onCollaspe = u.noOp       # (index :: Int, e :: DOMEvent) -> a
     }) ->
-        @showWidget = false # Boolean
 
-    onFoldInternal: (e) =>
+    onCollapseInternal: (e) =>
         i = parseInt (u.getCurrentTargetData e, 'index')
         if @autoCollaspe
-            if (j = @expandedIndexArray[0])?
-                @onCollaspe j
-            @expandedIndexArray = [i]
-            @onExpand i
+            for s, j in @stateArray
+                if s
+                    if i != j
+                        @onCollaspe j, e
+                        @stateArray[j] = false
 
-        else if i in @expandedIndexArray
-            u.removeFromArray @expandedIndexArray, i
-            @onCollaspe i
+        if @stateArray[i] == false
+            @stateArray[i] = true
+            @onExpand i, e
         else
-            @expandedIndexArray.push i
-            @onExpand i
+            @stateArray[i] = false
+            @onCollaspe i, e
 
     view: ->
         self = @
         m '.Collaspe',
-            for title, i in @titleArray
-                expanded = i in @expandedIndexArray
-                [
-                    m '.CollaspeTitle'
-                    ,
-                        key: 'title' + i
-                        'data-index': i.toString()
-                        onclick: @onFoldInternal
-                    ,
-                        if expanded then u.svg arrowDown else u.svg arrowRight
-                        m 'span', title
+            style:
+                borderWidth:
+                    if @borderType == 'NONE' then '0'
+                    else if @borderType == 'ALL' then '1px 1px 0 1px'
+                    else '1px 0 0 0'
+                borderRadius:
+                    if @borderType == 'ALL' then '4px'
+                    else 0
 
-                    m '.CollaspeBody'
+            for title, i in @titleArray
+                expanded = @stateArray[i]
+                m '.CollaspeGroup',
+                    key: i
+                    className: if expanded then 'Expanded' else ''
+                ,
+                    m '.CollaspeTitle',
+                        'data-index': i
+                        onclick: @onCollapseInternal
                     ,
-                        className: if expanded then 'Current' else ''
-                        key: 'body' + i
-                        onclick: @onFoldInternal
-                    ,    if expanded then @widgetArray[i].view()
-                ]
+                        m 'span.Icon',
+                            className: [@iconType, if expanded then 'Expanded' else ''].join ' '
+                        , m.trust COLLASPE_ARROW
+                        m 'span.Title', title
+
+                    m '.CollaspeBody',
+                        style:
+                            borderWidth:
+                                if @borderType == 'NONE' then '0'
+                                else if @borderType == 'ALL' and expanded then '1px 0 1px 0'
+                                else '0 0 1px 0'
+                        className: if expanded then 'Expanded' else ''
+                    ,
+                        if expanded then @widgetArray[i]
 
 Collaspe.mss =
     Collaspe:
-        CollaspeTitle: s.LineSize('2em', '1em')
-            color: style.text[8]
-            background: style.main[4]
-            border: '1px solid ' + style.main[4]
-            padding: '0 0.4em'
+        boxSizing: 'border-box'
+        borderStyle: 'solid'
+        borderColor: '#DADFE3'
+        overflow: 'hidden'
+        CollaspeTitle:
+            color: '#333'
+            lineHeight: '32px'
+            height: '32px'
             $hover:
                 cursor: 'pointer'
+            Title:
+                verticalAlign: 'middle'
+                marginLeft: '16px'
+            Icon:
+                margin: '11px 10px'
             svg:
-                fill: style.text[8]
-                height: '1.4em'
-                width: '1.4em'
-                padding: '0.3em'
+                fill: '#666'
+                width: '16px'
                 verticalAlign: 'middle'
-            span:
-                verticalAlign: 'middle'
+                transform: 'rotateZ(180deg)'
+                transition: 'all 0.3s'
+
+            LEFT:
+                marginRight: '-10px'
+                float: 'left'
+                svg: transform: 'rotateZ(-90deg)'
+            RIGHT:
+                float: 'right'
+
+            '.LEFT.Expanded':
+                svg: transform: 'rotateZ(0)'
+            '.RIGHT.Expanded':
+                svg: transform: 'rotateZ(0)'
 
         CollaspeBody:
-            border: '1px solid ' + style.border[4]
-            borderTop: 'none'
+            borderStyle: 'solid'
+            borderColor: '#DADFE3'
+
+        '.CollaspeBody.Expanded':
+            padding: '16px 32px'
+
+
+
 
 module.exports = Collaspe
